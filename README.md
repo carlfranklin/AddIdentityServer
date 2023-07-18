@@ -28,7 +28,7 @@ There are many ways to do authentication and authorization in a Blazor Server ap
 
 We are going to use the **ASP.NET Core Identity** subsystem including support for roles.
 
-The default Blazor Server template does not include support for Identity, but we are going to add everything needed to generate an identity database, a standard schema used by the ASP.NET Core Identity subsystem. Well, almost everything. 
+The default Blazor Server template does not include support for Identity, but we are going to add everything needed to generate an identity database, a standard schema used by the **ASP.NET Core Identity** subsystem. Well, almost everything. 
 
 When we're done, our Blazor Server application will allow users to register, log in, and log out. We can then authorize sections of markup, entire pages, and even code, based on whether or not the user is authenticated and what roles they are in. 
 
@@ -42,6 +42,8 @@ Create a new **Blazor Server App** project called **BasicAuth**.
 
 ![image-20230717123748814](images/image-20230717123748814.png)
 
+Do not select an **Authentication type**. We're assuming that you will already have a Blazor Server project that you want to add Identity to.
+
 ![image-20230717123831836](images/image-20230717123831836.png)
 
 Add the following packages to the .csproj file:
@@ -53,11 +55,31 @@ Add the following packages to the .csproj file:
 </ItemGroup>
 ```
 
+The first package allows us to use scaffolding. The second package contains types related to capturing and reporting diagnostics for Entity Framework Core in ASP.NET Core. 
+
 ### Scaffolding
 
-Visual Studio has a great scaffolding wizard for adding ASP.NET Core Identity features. However, as of this writing (Mid-July 2023) the generated code has not caught up to what's in the template. We'll start with the scaffolding, and fix what we need to along the way.
+Visual Studio has a great scaffolding wizard for adding **ASP.NET Core Identity** features. However, as of this writing (Mid-July 2023) the generated code has not caught up to what's in the template. We'll start with the scaffolding, and fix what we need to along the way.
 
-Check out the Identity database name in *appsettings.json*. It defaults to the name of the project. In our case, BasicAuth.
+Build the project before moving on.
+
+Right-click on the project name, and select the **Add / New Scaffolded Item...** menu option.
+
+Select **Identity** from the list on the left, and **Identity** from the result list, then select the **Add** button.
+
+![image-20230717151101185](images/image-20230717151101185.png)
+
+Select the options **Account\\Login**, **Account\Logout**, and **Account\Register**.
+
+Also, press the **Plus** button
+
+![image-20230717150845065](images/image-20230717150845065.png)
+
+When you select the **Plus** button, you'll see this. Select **Add**.
+
+<img src="images/image-20230717150957468.png" alt="image-20230717150957468" style="zoom:67%;" />
+
+Check out the Identity database name in *appsettings.json*. It defaults to the name of the project. In our case, **BasicAuth**.
 
 ```json
 {
@@ -73,22 +95,6 @@ Check out the Identity database name in *appsettings.json*. It defaults to the n
   }
 }
 ```
-
-Right-click on the project name, and select the **Add New Scaffolded Item...** menu option.
-
-Select **Identity** from the list on the left, and **Identity** from the result list, then select the **Add** button.
-
-![image-20230717151101185](images/image-20230717151101185.png)
-
-Select the options **Account\\Login**, **Account\Logout**, and **Account\Register**.
-
-Also, press the **Plus** button
-
-![image-20230717150845065](images/image-20230717150845065.png)
-
-
-
-<img src="images/image-20230717150957468.png" alt="image-20230717150957468" style="zoom:67%;" />
 
 Generate the database script code by executing the following command in the **Package Manager Console**:
 
@@ -201,7 +207,7 @@ public class RevalidatingIdentityAuthenticationStateProvider<TUser>
 }
 ```
 
-This class inherits [RevalidatingServerAuthenticationStateProvider](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.components.server.revalidatingserverauthenticationstateprovider?view=aspnetcore-7.0), a base class for [AuthenticationStateProvider](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.components.authorization.authenticationstateprovider?view=aspnetcore-7.0) services that receive an authentication state from the host environment, and revalidate it at regular intervals. This file would get added if we selected **Individual Accounts** when creating the project in Visual Studio.
+This class inherits [RevalidatingServerAuthenticationStateProvider](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.components.server.revalidatingserverauthenticationstateprovider?view=aspnetcore-7.0), a base class for [AuthenticationStateProvider](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.components.authorization.authenticationstateprovider?view=aspnetcore-7.0) services that receive an authentication state from the host environment, and revalidate it at regular intervals. This file would get added if we selected **Individual Accounts** as the **Authentication Type** when creating the project in Visual Studio.
 
 Replace *Program.cs* with the following:
 
@@ -252,6 +258,14 @@ app.MapFallbackToPage("/_Host");
 app.Run();
 ```
 
+Here are the changes we made:
+
+1. To the `AddDefaultIdentity` method, we added `.AddRoles<IdentityRole>()`
+2. We added `builder.Services.AddScoped<AuthenticationStateProvider,
+       RevalidatingIdentityAuthenticationStateProvider<IdentityUser>>();`
+3. We added `app.UseAuthorization();`
+4. We added `app.MapControllers();`
+
 Add to the *\Shared* folder:
 
 *LoginDisplay.razor*:
@@ -300,7 +314,7 @@ Replace *MainLayout.razor* with the following:
 
 We added the `LoginDisplay` component in the top bar.
 
-If you run the app now, it will not run. We need to make a change.
+If you run the app now, register, login, and try to log out, logging out will not work. We need to make a change.
 
 Replace *Areas\Identity\Pages\Account\Logout.cshtml* with the following:
 
@@ -426,7 +440,7 @@ This is a shortcut because you don't have an email sender registered, so the app
 
 ![image-20230717122838144](images/image-20230717122838144.png)
 
-Once you click this link, you can look in the **dbo.AspNetUsers** table, and see that the **EmailConfirmed** field in your user record has been set to *True*. If you do not do this, authentication will fail.
+Once you click this link, you can look in the **dbo.AspNetUsers** table, and see that the **EmailConfirmed** field in your user record has been set to *True*. If it is set to *False*, authentication will fail.
 
 ![image-20230717122858261](images/image-20230717122858261.png)
 
@@ -442,7 +456,7 @@ However, we can still navigate to the **FetchData** page by specifying the route
 
 ![image-20230717122938604](images/image-20230717122938604.png)
 
-Let's button up our two authorized pages now.
+Let's button up these two pages now.
 
 Add the following to *Counter.razor* at line 2:
 
@@ -460,7 +474,7 @@ Add this to *FetchData.razor* at line 2:
 
 This requires the user to be authenticated AND in the **admin** role.
 
-Log out and log in again. Now you can not:
+Run the app, log out and log in again. Now you can not:
 
 - access either **Counter** or **FetchData** if you are not logged in, even if you specify the route in the url
 - access **FetchData** if you are not in the **admin** role
@@ -530,9 +544,9 @@ Take a look at *App.razor*:
 </CascadingAuthenticationState>
 ```
 
-When you're using ASP.NET Core Identity, your entire application has access to the authentication state as a cascading parameter.
+When you're using **ASP.NET Core Identity**, your entire application has access to the authentication state as a cascading parameter. That's because the entire router (the app) is encapsulated inside a `CascadingAuthenticationState` component.
 
-Replace *Counter.razor* with the following:
+Replace *Counter.razor* with the following: 
 
 ```c#
 @page "/counter"
@@ -648,7 +662,7 @@ private void IncrementCount()
 }
 ```
 
-According to this, the user has to be in the **counterClicker** role in order to increment the counter. This check is done like so:
+According to this, the user has to be present and logged in. Also, the user has to be in the **counterClicker** role in order to increment the counter. This check is done like so:
 
 ```c#
 if (user.IsInRole("counterClicker"))
@@ -674,7 +688,7 @@ Run the **AuthDemo** app again, log out, log in, and try the counter button agai
 
 In this module we:
 
-- Created a new Blazor Server project without any authentication template code.
+- Created a new Blazor Server project without any authentication.
 - Added support for Identity Roles in *Program.cs*
 - Modified the Identity Database connection string in *appsettings.json*
 - Generated the migration to create the database with the `add-migration` command
