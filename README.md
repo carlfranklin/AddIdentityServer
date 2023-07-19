@@ -690,7 +690,6 @@ In this module we:
 
 - Created a new Blazor Server project without any authentication.
 - Added support for Identity Roles in *Program.cs*
-- Modified the Identity Database connection string in *appsettings.json*
 - Generated the migration to create the database with the `add-migration` command
 - Generated the database with the `update-database` command
 - Added support code and markup for server-based authentication and authorization
